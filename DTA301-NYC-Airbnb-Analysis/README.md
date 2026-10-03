@@ -29,12 +29,14 @@ Rscript prepare_airbnb_model.R
 ```
 
 ### 2. Trực quan hoá dữ liệu (EDA) và Máy học (Modeling)
-Phần biểu đồ và Máy học được thực hiện trên **Jupyter Notebook (`.ipynb`)** với ngôn ngữ Python để tiện lợi hiển thị trực quan biểu đồ ra bên dưới từng ô code (Cell).
+Phần biểu đồ và Máy học được thực hiện trên **Jupyter Notebook (`.ipynb`)** với ngôn ngữ **R**.
 
-Mở các file sau bằng VSCode, Jupyter Lab hoặc Google Colab và chạy từng ô (Run All):
+Mở các file sau bằng VSCode, Jupyter Lab hoặc Google Colab (với R Kernel) và chạy từng ô (Run All):
 * `code/03_EDA/03_EDA_Visualization.ipynb`: Xem bản đồ mật độ, biểu đồ giá phòng, và Wordcloud của các lượt đánh giá.
 * `code/04_Modeling/04_Modeling.ipynb`: Mô hình Hồi quy dự đoán giá, Phân cụm nhóm khách hàng, và Xử lý ngôn ngữ tự nhiên.
 
 ## Phụ thuộc (Dependencies)
-* **R (Tiền xử lý):** `dplyr`, `readr`, `tidyr`.
-* **Python (EDA & Modeling):** `pandas`, `numpy`, `matplotlib`, `seaborn`, `wordcloud`, `scikit-learn`.
+Tất cả code đều sử dụng 100% ngôn ngữ R.
+* **Tiền xử lý:** `dplyr`, `readr`, `tidyr`.
+* **Trực quan hoá (EDA):** `ggplot2`, `wordcloud`, `tm`.
+* **Máy học (Modeling):** `randomForest`, `caret`.
