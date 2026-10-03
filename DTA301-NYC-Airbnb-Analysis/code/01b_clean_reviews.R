@@ -41,14 +41,23 @@ cleaned_reviews <- reviews %>%
   filter(listing_id %in% valid_listing_ids) %>%
   # 2. Bỏ qua các review không có nội dung comment
   filter(!is.na(comments) & comments != "") %>%
+  # 2b. Lọc bỏ các comment tự động của hệ thống (chứa "automated posting")
+  filter(!grepl("automated posting", comments, ignore.case = TRUE)) %>%
+  # 2c. Lọc bỏ các bình luận quá ngắn (rác, vô nghĩa) bằng cách đếm số từ
+  # Chú ý: Dùng strsplit để đếm số từ. Các bình luận có ít hơn 4 từ sẽ bị loại
+  filter(lengths(strsplit(comments, "\\s+")) >= 4) %>%
   # 3. Chỉ giữ các cột cần cho Sentiment Analysis (Bỏ tên reviewer để bảo mật và giảm dung lượng)
   select(listing_id, review_id = id, date, comments)
 
 cat("Số lượng dòng sau khi làm sạch:", nrow(cleaned_reviews), "\n")
 cat("Đã loại bỏ được:", nrow(reviews) - nrow(cleaned_reviews), "dòng dữ liệu dư thừa/khuyết thiếu.\n")
 
-# Lưu ra file mới
-output_path <- "../data/cleaned_reviews.csv"
-write_csv(cleaned_reviews, output_path)
+# Lưu ra file csv để xem cục bộ
+output_csv <- "../data/cleaned_reviews.csv"
+write_csv(cleaned_reviews, output_csv)
+
+# Lưu ra file mới dạng nén xz để giảm tối đa dung lượng (Github giới hạn 100MB)
+output_xz <- "../data/cleaned_reviews.csv.xz"
+write_csv(cleaned_reviews, output_xz)
 
 cat("Tuyệt vời! Dữ liệu reviews gọn nhẹ đã được lưu tại:", output_path, "\n")
