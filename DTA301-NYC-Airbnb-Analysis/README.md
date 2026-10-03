@@ -1,44 +1,40 @@
-# PROJECT ROADMAP: NYC AIRBNB DATA ANALYSIS (R Language)
+# DTA301 NYC Airbnb Data Analysis
 
-Dự án này tuân thủ chặt chẽ vòng đời phân tích dữ liệu (Data Analytics Lifecycle) sử dụng ngôn ngữ R. Dưới đây là lộ trình chi tiết từng bước sẽ thực hiện trong dự án.
+Dự án phân tích dữ liệu Airbnb tại New York (NYC), tập trung giải quyết 3 bài toán kinh doanh lõi (Pricing Strategy, Market Positioning, Customer Satisfaction).
 
-## BƯỚC 1: DATA PREPARATION & CLEANING (TIỀN XỬ LÝ DỮ LIỆU)
-**Mục tiêu:** Chuẩn bị dữ liệu sạch sẽ, không có lỗi trước khi đưa vào mô hình học máy.
-* **1.1 Load dữ liệu:** Đọc 2 file `listings.csv` và `reviews.csv` (bản chi tiết của Inside Airbnb, New York City, snapshot 06/2026) bằng thư viện `readr`.
-  > **Lưu ý:** `reviews.csv` gốc nặng 310 MB, vượt giới hạn 100 MB/file của GitHub, nên repo lưu bản nén `data/reviews.csv.xz` (73 MB). Đọc trực tiếp bằng `read_csv("../data/reviews.csv.xz")`, không cần giải nén. Nguồn: http://insideairbnb.com/get-the-data/ (New York City).
-* **1.2 Xử lý Missing Values:** Loại bỏ các dòng bị khuyết tọa độ (latitude/longitude), điền giá trị 0 cho các phòng chưa từng có đánh giá (reviews_per_month).
-* **1.3 Lọc Outliers (Giá trị dị biệt):** Lọc bỏ các phòng có mức giá (`price`) = 0 hoặc quá lớn một cách phi lý. Lọc bỏ số đêm tối thiểu (`minimum_nights`) > 365.
-* **1.4 Merge Data:** File listings chi tiết đã có sẵn `first_review`, `last_review` và số lượng review, nên chưa cần join reviews ở bước này. Điểm cảm xúc (sentiment) của từng listing sẽ được join từ reviews sang listings bằng `dplyr` sau Bước 3.
+## Cấu trúc thư mục (Directory Structure)
+Dự án áp dụng chặt chẽ 6 giai đoạn của **Data Analytics Lifecycle**, với mã nguồn (code) được chia thành các thư mục tương ứng với từng giai đoạn (Phase) để dễ quản lý:
 
-## BƯỚC 2: EXPLORATORY DATA ANALYSIS - EDA (KHÁM PHÁ DỮ LIỆU)
-**Mục tiêu:** Hiểu rõ bức tranh toàn cảnh và tìm ra các xu hướng ẩn (Insights).
-* **2.1 Phân bố giá:** Vẽ biểu đồ Histogram xem giá phòng tập trung ở mức nào.
-* **2.2 So sánh khu vực:** Vẽ Bar chart để so sánh giá thuê trung bình giữa 5 quận (Manhattan, Brooklyn, Queens, Bronx, Staten Island).
-* **2.3 Phân tích loại phòng:** Phân tích tỷ lệ 4 loại phòng (Entire home/apt, Private room, Hotel room, Shared room) bằng Pie chart.
-*(Thư viện sử dụng: `ggplot2`)*
+* 📁 **`code/`**: Chứa toàn bộ kịch bản và mã nguồn phân tích
+  * `01_Data_Cleaning/`: Xử lý dị biệt (Outliers) và giá trị khuyết (Missing Values) cho dữ liệu Listings và Reviews.
+  * `02_Feature_Engineering/`: Chuyển đổi dữ liệu và chuẩn bị ma trận đặc trưng cho các mô hình Machine Learning.
+  * `03_EDA/`: Khám phá và trực quan hóa dữ liệu (Các biểu đồ vẽ bằng Jupyter Notebook `.ipynb`).
+  * `04_Modeling/`: Triển khai các thuật toán học máy (Regression, K-Means Clustering, NLP Sentiment Analysis).
 
-## BƯỚC 3: TEXT ANALYSIS / NLP (PHÂN TÍCH VĂN BẢN)
-**Mục tiêu:** Hiểu được khách hàng thích hay ghét điều gì qua các bình luận.
-* **3.1 Tokenization:** Tách các câu bình luận trong `reviews.csv` thành từng từ đơn lẻ.
-* **3.2 Stopwords Removal:** Bỏ các từ vô nghĩa (the, a, is, in...). Trước đó: bỏ cột `reviewer_name`, `reviewer_id`; xóa thẻ HTML `<br/>`; bỏ bình luận trống hoặc quá ngắn; lọc bình luận không phải tiếng Anh (gói `cld2`).
-* **3.3 Sentiment Analysis:** Phân loại các từ thành Tích cực (Positive) và Tiêu cực (Negative).
-* **3.4 Khai phá TF-IDF:** Tìm ra những từ khóa đặc trưng nhất tạo nên một phòng có đánh giá cao: so sánh nhóm `review_scores_rating` = 5.0 với nhóm < 4.5 (trung vị đã là 4.86 nên không chia theo trung vị).
-*(Thư viện sử dụng: `tidytext`, `stringr`, `wordcloud`)*
+* 📁 **`data/`**: Chứa các tệp dữ liệu thô và dữ liệu đã làm sạch (`listings.csv`, `reviews.csv`, `cleaned_listings.csv`, `cleaned_reviews.csv.xz`, `airbnb_model_ready.csv`).
+* 📁 **`report/`**: Chứa tài liệu báo cáo phân tích tổng quan cho các giai đoạn (Phase 1 & 2).
 
-## BƯỚC 4: K-MEANS CLUSTERING (PHÂN CỤM KHÁCH HÀNG/PHÒNG)
-**Mục tiêu:** Chia thị trường Airbnb thành các phân khúc khác nhau.
-* **4.1 Chọn biến (Feature Selection):** Lấy các cột `price`, `latitude`, `longitude`, `number_of_reviews`.
-* **4.2 Chuẩn hóa dữ liệu (Scaling):** Đưa các biến về cùng một thang đo bằng hàm `scale()`.
-* **4.3 Chạy K-means:** Thử nghiệm K = 3 hoặc K = 4.
-* **4.4 Phân tích Cụm:** Đặt tên cho từng phân khúc (Ví dụ: "Phân khúc siêu sang ở Manhattan", "Phân khúc giá rẻ ở ngoại ô").
+## Hướng dẫn sử dụng (How to use)
 
-## BƯỚC 5: LINEAR REGRESSION (MÔ HÌNH HỒI QUY DỰ ĐOÁN GIÁ)
-**Mục tiêu:** Xây dựng phương trình toán học để dự đoán giá thuê phòng.
-* **5.1 Split Data:** Chia tập dữ liệu thành Train set (80%) và Test set (20%).
-* **5.2 Khởi tạo mô hình:** Dùng hàm `lm()` với biến phụ thuộc là `price` và biến độc lập là `neighbourhood_group`, `room_type`, `accommodates`, `stay_type` (ngắn hạn < 30 đêm / dài hạn >= 30 đêm, theo NYC Local Law 18; tạo trong `code/prepare_airbnb_model.R`).
-* **5.3 Đánh giá mô hình:** Kiểm tra các chỉ số R-squared và P-value để xem biến nào tác động mạnh nhất đến giá phòng.
+### 1. Tiền xử lý dữ liệu (Data Cleaning & Feature Engineering)
+Chạy lần lượt các script R trong môi trường làm việc `code/`:
+```bash
+# Di chuyển vào thư mục code
+cd code/01_Data_Cleaning
+Rscript 01_data_cleaning.R
+Rscript 01b_clean_reviews.R
 
-## BƯỚC 6: DATA VISUALIZATION & REPORTING (TRỰC QUAN HÓA & BÁO CÁO)
-**Mục tiêu:** Trình bày kết quả trực quan cho các Stakeholders.
-* **6.1 Export Kết quả:** Lưu các biểu đồ EDA, biểu đồ Phân cụm và kết quả Dự đoán ra file ảnh/csv.
-* **6.2 Hoàn thiện báo cáo:** Đưa toàn bộ code, biểu đồ và insight vào Slide thuyết trình và báo cáo Word cuối cùng.
+cd ../02_Feature_Engineering
+Rscript prepare_airbnb_model.R
+```
+
+### 2. Trực quan hoá dữ liệu (EDA) và Máy học (Modeling)
+Phần biểu đồ và Máy học được thực hiện trên **Jupyter Notebook (`.ipynb`)** với ngôn ngữ Python để tiện lợi hiển thị trực quan biểu đồ ra bên dưới từng ô code (Cell).
+
+Mở các file sau bằng VSCode, Jupyter Lab hoặc Google Colab và chạy từng ô (Run All):
+* `code/03_EDA/03_EDA_Visualization.ipynb`: Xem bản đồ mật độ, biểu đồ giá phòng, và Wordcloud của các lượt đánh giá.
+* `code/04_Modeling/04_Modeling.ipynb`: Mô hình Hồi quy dự đoán giá, Phân cụm nhóm khách hàng, và Xử lý ngôn ngữ tự nhiên.
+
+## Phụ thuộc (Dependencies)
+* **R (Tiền xử lý):** `dplyr`, `readr`, `tidyr`.
+* **Python (EDA & Modeling):** `pandas`, `numpy`, `matplotlib`, `seaborn`, `wordcloud`, `scikit-learn`.
