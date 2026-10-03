@@ -41,9 +41,11 @@ cleaned_reviews <- reviews %>%
   filter(listing_id %in% valid_listing_ids) %>%
   # 2. Bỏ qua các review không có nội dung comment
   filter(!is.na(comments) & comments != "") %>%
-  # 2b. Lọc bỏ các comment tự động của hệ thống (chứa "automated posting")
-  filter(!grepl("automated posting", comments, ignore.case = TRUE)) %>%
-  # 2c. Lọc bỏ các bình luận quá ngắn (rác, vô nghĩa) bằng cách đếm số từ
+  # 2b. Lọc bỏ các comment không có ngày tháng (date bị khuyết)
+  filter(!is.na(date)) %>%
+  # 2c. Lọc bỏ các comment tự động của hệ thống (chứa "automated posting" hoặc "canceled this reservation")
+  filter(!grepl("automated posting|canceled this reservation", comments, ignore.case = TRUE)) %>%
+  # 2d. Lọc bỏ các bình luận quá ngắn (rác, vô nghĩa) bằng cách đếm số từ
   # Chú ý: Dùng strsplit để đếm số từ. Các bình luận có ít hơn 4 từ sẽ bị loại
   filter(lengths(strsplit(comments, "\\s+")) >= 4) %>%
   # 3. Chỉ giữ các cột cần cho Sentiment Analysis (Bỏ tên reviewer để bảo mật và giảm dung lượng)
@@ -60,4 +62,4 @@ write_csv(cleaned_reviews, output_csv)
 output_xz <- "../data/cleaned_reviews.csv.xz"
 write_csv(cleaned_reviews, output_xz)
 
-cat("Tuyệt vời! Dữ liệu reviews gọn nhẹ đã được lưu tại:", output_path, "\n")
+cat("Tuyệt vời! Dữ liệu reviews gọn nhẹ đã được lưu tại:", output_csv, "và", output_xz, "\n")
