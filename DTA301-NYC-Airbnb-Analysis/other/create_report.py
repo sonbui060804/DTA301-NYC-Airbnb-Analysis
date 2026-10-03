@@ -42,6 +42,11 @@ doc.add_paragraph('• Áp dụng chặt chẽ 6 giai đoạn của Data Analyti
 doc.add_paragraph('• Làm sạch và tiền xử lý dữ liệu bảng (listings) và dữ liệu văn bản (reviews).', style='List Bullet')
 doc.add_paragraph('• Ứng dụng thành thạo Machine Learning: Regression, Clustering và Text Analysis (TF-IDF).', style='List Bullet')
 
+doc.add_heading('4. Hypothesis (Các giả thuyết nghiên cứu)', level=2)
+doc.add_paragraph('• H1 (Về giá): Các phòng ở khu vực Manhattan và có thuộc tính "Entire home/apt" sẽ có mức giá trung bình cao nhất.')
+doc.add_paragraph('• H2 (Về khách hàng): Phân khúc giá rẻ (dưới $100/đêm) sẽ có số lượng review (lượt khách) cao hơn đáng kể so với phân khúc cao cấp.')
+doc.add_paragraph('• H3 (Về đánh giá): Các bình luận chứa nhiều từ khóa như "dirty", "loud", "small" sẽ tương quan mạnh mẽ với điểm đánh giá (review_scores_rating) thấp.')
+
 doc.add_heading('PHASE 2: DATA PREPARATION (CHUẨN BỊ DỮ LIỆU)', level=1)
 
 doc.add_heading('1. Data Collection (Thu thập dữ liệu)', level=2)

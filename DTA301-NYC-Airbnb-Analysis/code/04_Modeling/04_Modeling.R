@@ -27,7 +27,11 @@ p3 <- ggplot(features, aes(x = longitude, y = latitude, color = cluster)) +
   geom_point(alpha = 0.5, size = 0.5) +
   theme_minimal() +
   labs(title = "Phân khúc phòng Airbnb (K-Means Clustering)")
-print(p3)
+
+# Lưu biểu đồ phân cụm thành ảnh
+dir.create("../../report/images", showWarnings = FALSE, recursive = TRUE)
+ggsave("../../report/images/04_KMeans_Clustering.png", plot = p3, width = 10, height = 8, dpi = 300)
+cat("Đã lưu biểu đồ phân cụm tại: report/images/04_KMeans_Clustering.png\n")
 
 # ------------------------------------------------------------------------------
 # 2. Bài toán Định giá (Regression - Random Forest)
