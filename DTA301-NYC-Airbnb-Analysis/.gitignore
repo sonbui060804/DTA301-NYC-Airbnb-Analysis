@@ -1,2 +1,4 @@
 # reviews.csv gốc nặng 310 MB (giới hạn GitHub: 100 MB/file). Repo lưu bản nén data/reviews.csv.xz.
 data/reviews.csv
+data/cleaned_reviews.csv
+data/reviews.csv.gz
