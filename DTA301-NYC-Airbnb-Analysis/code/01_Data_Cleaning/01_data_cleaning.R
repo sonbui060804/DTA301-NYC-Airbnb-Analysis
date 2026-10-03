@@ -23,7 +23,7 @@ cat("Bắt đầu quá trình Tiền Xử Lý Dữ Liệu...\n")
 # Sử dụng relative path (đường dẫn tương đối) trỏ ra ngoài thư mục code
 cat("Đang đọc file listings.csv...\n")
 # id có 19 chữ số, vượt độ chính xác của kiểu số thực -> đọc dạng chuỗi
-listings <- read_csv("../data/listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
+listings <- read_csv("../../data/listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
 
 # Xem qua cấu trúc dữ liệu ban đầu
 cat("Số lượng dòng ban đầu:", nrow(listings), "\n")
@@ -72,7 +72,7 @@ cat("Số lượng dòng sau khi làm sạch:", nrow(cleaned_listings), "\n")
 cat("Đã loại bỏ được:", nrow(listings) - nrow(cleaned_listings), "dòng dữ liệu lỗi/dị biệt.\n")
 
 # 4. LƯU DỮ LIỆU ĐÃ LÀM SẠCH VÀO FILE MỚI
-output_path <- "../data/cleaned_listings.csv"
+output_path <- "../../data/cleaned_listings.csv"
 write_csv(cleaned_listings, output_path)
 
 cat("Tuyệt vời! Dữ liệu sạch đã được lưu tại:", output_path, "\n")

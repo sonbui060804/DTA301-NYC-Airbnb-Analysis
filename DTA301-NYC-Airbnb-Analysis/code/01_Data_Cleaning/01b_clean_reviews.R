@@ -17,13 +17,13 @@ cat("Bắt đầu quá trình Tiền Xử Lý file Reviews...\n")
 
 # Đọc file cleaned_listings để lấy danh sách các id hợp lệ
 cat("Đang đọc cleaned_listings.csv...\n")
-cleaned_listings <- read_csv("../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
+cleaned_listings <- read_csv("../../../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
 
 valid_listing_ids <- cleaned_listings$id
 
 # Đọc file reviews
 cat("Đang đọc reviews.csv (file gốc)...\n")
-reviews <- read_csv("../data/reviews.csv", col_types = cols(
+reviews <- read_csv("../../../data/reviews.csv", col_types = cols(
   listing_id = col_character(),
   id = col_character(),
   date = col_date(format = ""),
@@ -55,11 +55,11 @@ cat("Số lượng dòng sau khi làm sạch:", nrow(cleaned_reviews), "\n")
 cat("Đã loại bỏ được:", nrow(reviews) - nrow(cleaned_reviews), "dòng dữ liệu dư thừa/khuyết thiếu.\n")
 
 # Lưu ra file csv để xem cục bộ
-output_csv <- "../data/cleaned_reviews.csv"
+output_csv <- "../../../data/cleaned_reviews.csv"
 write_csv(cleaned_reviews, output_csv)
 
 # Lưu ra file mới dạng nén xz để giảm tối đa dung lượng (Github giới hạn 100MB)
-output_xz <- "../data/cleaned_reviews.csv.xz"
+output_xz <- "../../data/cleaned_reviews.csv.xz"
 write_csv(cleaned_reviews, output_xz)
 
 cat("Tuyệt vời! Dữ liệu reviews gọn nhẹ đã được lưu tại:", output_csv, "và", output_xz, "\n")

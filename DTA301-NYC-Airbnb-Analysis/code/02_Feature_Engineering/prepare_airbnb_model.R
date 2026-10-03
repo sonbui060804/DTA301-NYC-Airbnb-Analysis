@@ -18,7 +18,7 @@ library(tidyr)
 
 # 1. Đọc dữ liệu (dùng dữ liệu đã làm sạch để thống nhất bộ lọc outliers)
 cat("Đang đọc dữ liệu...\n")
-listings <- read_csv("../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
+listings <- read_csv("../../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
 
 # Ngày chốt dữ liệu = ngày review mới nhất -> kết quả không đổi theo ngày chạy code
 snapshot_date <- max(listings$last_review, na.rm = TRUE)
@@ -43,6 +43,6 @@ model_data <- listings %>%
   select(-id, -first_review, -last_review) # Bỏ khóa và các cột ngày tháng sau khi đã chuyển thành số
 
 # 3. Lưu dữ liệu đã làm sạch
-output_path <- "../data/airbnb_model_ready.csv"
+output_path <- "../../data/airbnb_model_ready.csv"
 write_csv(model_data, output_path)
 cat("Dữ liệu sẵn sàng cho mô hình. Số dòng:", nrow(model_data), "- Lưu tại:", output_path, "\n")
