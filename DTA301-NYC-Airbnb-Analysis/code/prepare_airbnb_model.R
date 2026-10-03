@@ -1,58 +1,48 @@
 
-# C�i d?t v� t?i c�c thu vi?n c?n thi?t
+# ==============================================================================
+# CHUẨN BỊ DỮ LIỆU CHO MÔ HÌNH (MODEL-READY DATA)
+# Đầu vào: cleaned_listings.csv (kết quả của 01_data_cleaning.R)
+# Chạy 01_data_cleaning.R trước, với thư mục làm việc là thư mục code.
+# ==============================================================================
+
+# Cài đặt và tải các thư viện cần thiết
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(readr)) install.packages("readr")
-if (!require(lubridate)) install.packages("lubridate")
+if (!require(tidyr)) install.packages("tidyr")
 
 library(dplyr)
 library(readr)
-library(lubridate)
+library(tidyr)
 
-# 1. �?c d? li?u
-cat("�ang d?c d? li?u...\n")
-listings <- read_csv("D:/dta/reviews.csv~1/listings.csv")
-reviews <- read_csv("D:/dta/reviews.csv~1/reviews.csv")
+# 1. Đọc dữ liệu (dùng dữ liệu đã làm sạch để thống nhất bộ lọc outliers)
+cat("Đang đọc dữ liệu...\n")
+listings <- read_csv("../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
 
-# 2. Ti?n x? l� d? li?u reviews (T?o c�c d?c trung m?i)
-cat("�ang x? l� d? li?u nh?n x�t...\n")
-# T�nh to�n m?t s? d?c trung t? reviews d? l�m phong ph� d? li?u d? do�n
-# V� d?: S? lu?ng review g?n d�y (trong 1 nam qua)
-reviews_summary <- reviews %>%
-  mutate(date = as.Date(date)) %>%
-  group_by(listing_id) %>%
-  summarise(
-    total_reviews_text = n(),
-    latest_review_date = max(date, na.rm = TRUE),
-    .groups = "drop"
-  )
+# Ngày chốt dữ liệu = ngày review mới nhất -> kết quả không đổi theo ngày chạy code
+snapshot_date <- max(listings$last_review, na.rm = TRUE)
+cat("Ngày chốt dữ liệu (snapshot):", format(snapshot_date), "\n")
 
-# 3. G?p d? li?u (Merge)
-cat("�ang g?p d? li?u...\n")
-merged_data <- listings %>%
-  left_join(reviews_summary, by = c("id" = "listing_id"))
-
-# 4. Ti?n x? l� cho M� h�nh H?c m�y (Machine Learning)
-cat("�ang l�m s?ch d? li?u cho m� h�nh...\n")
-model_data <- merged_data %>%
-  # Lo?i b? c�c c?t kh�ng c� gi� tr? d? do�n (nhu ID, T�n, License)
-  select(-id, -name, -host_id, -host_profile_id, -host_name, -license) %>%
-  
-  # X? l� missing values co b?n
+# 2. Tạo đặc trưng cho mô hình
+# File listings chi tiết đã có first_review, last_review và số review, nên không cần gộp reviews.csv ở bước này.
+# Điểm cảm xúc (sentiment) từ reviews sẽ được gộp vào sau Bước 3 (NLP).
+cat("Đang tạo đặc trưng cho mô hình...\n")
+model_data <- listings %>%
   mutate(
-    reviews_per_month = replace_na(reviews_per_month, 0),
-    total_reviews_text = replace_na(total_reviews_text, 0),
-    
-    # Bi?n d?i ng�y th�ng th�nh s? ng�y k? t? l?n d�nh gi� cu?i c�ng
-    days_since_last_review = as.numeric(Sys.Date() - as.Date(last_review)),
-    days_since_last_review = replace_na(days_since_last_review, 9999) # 9999 cho nh?ng ph�ng chua c� review
+    # NYC Local Law 18 (09/2023): phần lớn listing chỉ cho thuê từ 30 đêm trở lên
+    stay_type = if_else(minimum_nights >= 30, "long_stay", "short_stay"),
+
+    # Listing chưa có review: đánh dấu bằng has_reviews = 0 và điền trung vị cho các cột số ngày
+    has_reviews = as.integer(number_of_reviews > 0),
+    days_since_last_review = as.numeric(snapshot_date - last_review),
+    days_since_first_review = as.numeric(snapshot_date - first_review),
+    days_since_last_review = replace_na(days_since_last_review, median(days_since_last_review, na.rm = TRUE)),
+    days_since_first_review = replace_na(days_since_first_review, median(days_since_first_review, na.rm = TRUE))
   ) %>%
-  select(-last_review, -latest_review_date) # B? c�c c?t ng�y th�ng sau khi d� chuy?n th�nh s?
+  select(-id, -first_review, -last_review) # Bỏ khóa và các cột ngày tháng sau khi đã chuyển thành số
 
-# L?c c�c d�ng b? thi?u gi� tr? ? c�c bi?n quan tr?ng (v� d?: price)
-model_data <- model_data %>% filter(!is.na(price) & price > 0)
-
-# 5. Luu d? li?u d� g?p v� l�m s?ch
-output_path <- "D:/dta/airbnb_model_ready.csv"
+# 3. Lưu dữ liệu đã làm sạch
+output_path <- "../data/airbnb_model_ready.csv"
 write_csv(model_data, output_path)
-cat("Tuy?t v?i! D? li?u d� du?c g?p v� l�m s?ch. Luu t?i:", output_path, "\n")
-
+cat("Dữ liệu sẵn sàng cho mô hình. Số dòng:", nrow(model_data), "- Lưu tại:", output_path, "\n")

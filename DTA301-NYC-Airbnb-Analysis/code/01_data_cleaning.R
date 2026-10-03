@@ -22,7 +22,8 @@ cat("Bắt đầu quá trình Tiền Xử Lý Dữ Liệu...\n")
 # 2. ĐỌC DỮ LIỆU TỪ THƯ MỤC DATA
 # Sử dụng relative path (đường dẫn tương đối) trỏ ra ngoài thư mục code
 cat("Đang đọc file listings.csv...\n")
-listings <- read_csv("../data/listings.csv", show_col_types = FALSE)
+# id có 19 chữ số, vượt độ chính xác của kiểu số thực -> đọc dạng chuỗi
+listings <- read_csv("../data/listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
 
 # Xem qua cấu trúc dữ liệu ban đầu
 cat("Số lượng dòng ban đầu:", nrow(listings), "\n")
@@ -31,14 +32,25 @@ cat("Số lượng dòng ban đầu:", nrow(listings), "\n")
 cat("Đang dọn dẹp các giá trị khuyết và dị biệt...\n")
 cleaned_listings <- listings %>%
   
-  # 3.1: Bỏ qua các cột không có giá trị học máy (Machine Learning)
-  select(-id, -host_name, -name, -host_id, -host_profile_id, -license) %>%
-  
+  # 3.1: Chỉ giữ các cột dùng cho phân tích (bỏ dữ liệu cá nhân: tên, mô tả, URL của chủ nhà)
+  # Giữ id làm khóa để ghép (join) với reviews ở bước sau
+  select(
+    id,
+    neighbourhood_group = neighbourhood_group_cleansed,
+    neighbourhood = neighbourhood_cleansed,
+    latitude, longitude, room_type, accommodates, price, minimum_nights,
+    number_of_reviews, first_review, last_review, reviews_per_month, review_scores_rating,
+    calculated_host_listings_count, availability_365, number_of_reviews_ltm
+  ) %>%
+
   # 3.2: Xử lý Missing Values (Giá trị khuyết thiếu)
+  # - price trong file chi tiết là chuỗi dạng "$1,234.00" -> chuyển sang số
   # - Nếu số review (reviews_per_month) bị NA (do chưa ai review), điền là 0
   # - Lọc bỏ những phòng bị khuyết giá (price) hoặc khuyết tọa độ
   mutate(
+    price = parse_number(price),
     reviews_per_month = replace_na(reviews_per_month, 0),
+    first_review = as.Date(first_review),
     last_review = as.Date(last_review)
   ) %>%
   filter(!is.na(price)) %>%

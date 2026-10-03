@@ -23,7 +23,7 @@ title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 doc.add_heading('THÔNG TIN TỔNG QUAN (OVERVIEW)', level=1)
 doc.add_paragraph('- Tên dự án: Giải pháp Dữ liệu & Tối ưu Chiến lược Kinh doanh Airbnb tại New York.')
-doc.add_paragraph('- Nguồn dữ liệu: Dữ liệu công khai từ Inside Airbnb (http://insideairbnb.com/get-the-data/) - Cụ thể: Thành phố New York (New York City), cập nhật năm 2024.')
+doc.add_paragraph('- Nguồn dữ liệu: Dữ liệu công khai từ Inside Airbnb (http://insideairbnb.com/get-the-data/) - Cụ thể: Thành phố New York (New York City), snapshot tháng 06/2026.')
 
 doc.add_heading('PHASE 1: DISCOVERY (TÌM HIỂU VÀ XÁC ĐỊNH BÀI TOÁN)', level=1)
 
@@ -57,6 +57,6 @@ doc.add_paragraph('• Xử lý Dị biệt (Outliers): Khảo sát và loại b
 doc.add_paragraph('• Xử lý Giá trị Khuyết (Missing Values): Xử lý các dòng thiếu thông tin đánh giá bằng cách thay thế (imputation) hoặc loại bỏ (drop).', style='List Bullet')
 doc.add_paragraph('• Text Processing: Làm sạch cột comments (loại bỏ stop words, dấu câu) để chuẩn bị ma trận TF-IDF cho NLP.', style='List Bullet')
 
-output_path = r'd:\dta\DTA301-NYC-Airbnb-Analysis\Project_Report_Phase_1_2.docx'
+output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'report', 'Project_Report_Phase_1_2.docx')
 doc.save(output_path)
 print(f"File DOCX created successfully at: {output_path}")
