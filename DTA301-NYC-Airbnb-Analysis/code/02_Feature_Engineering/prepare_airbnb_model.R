@@ -1,48 +1,39 @@
-
-# ==============================================================================
 # CHUẨN BỊ DỮ LIỆU CHO MÔ HÌNH (MODEL-READY DATA)
-# Đầu vào: cleaned_listings.csv (kết quả của 01_data_cleaning.R)
-# Chạy 01_data_cleaning.R trước, với thư mục làm việc là thư mục code.
-# ==============================================================================
+# Các giá trị NA dành cho đặc trưng dự đoán được xử lý sau khi chia train/test.
+# Tìm hàm chung khi chạy từ notebook, thư mục dự án hoặc đường dẫn Rscript tuyệt đối.
+script_arg <- grep("^--file=", commandArgs(), value = TRUE)
+origins <- c(getwd(), if (length(script_arg)) dirname(sub("^--file=", "", script_arg[1])))
+helper <- NULL
+for (origin in origins) {
+  current <- normalizePath(origin, winslash = "/", mustWork = TRUE)
+  repeat {
+    candidates <- c(file.path(current, "code", "analysis_helpers.R"),
+                    file.path(current, "DTA301-NYC-Airbnb-Analysis", "code", "analysis_helpers.R"))
+    found <- candidates[file.exists(candidates)]
+    if (length(found)) { helper <- found[1]; break }
+    if (dirname(current) == current) break
+    current <- dirname(current)
+  }
+  if (!is.null(helper)) break
+}
+if (is.null(helper)) stop("Không tìm thấy code/analysis_helpers.R.")
+source(helper, encoding = "UTF-8")
 
-# Cài đặt và tải các thư viện cần thiết
-options(repos = c(CRAN = "https://cloud.r-project.org"))
-
-if (!require(dplyr)) install.packages("dplyr")
-if (!require(readr)) install.packages("readr")
-if (!require(tidyr)) install.packages("tidyr")
-
+require_packages(c("dplyr", "readr"))
 library(dplyr)
-library(readr)
-library(tidyr)
-
-# 1. Đọc dữ liệu (dùng dữ liệu đã làm sạch để thống nhất bộ lọc outliers)
-cat("Đang đọc dữ liệu...\n")
-listings <- read_csv("../../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
-
-# Ngày chốt dữ liệu = ngày review mới nhất -> kết quả không đổi theo ngày chạy code
-snapshot_date <- max(listings$last_review, na.rm = TRUE)
-cat("Ngày chốt dữ liệu (snapshot):", format(snapshot_date), "\n")
-
-# 2. Tạo đặc trưng cho mô hình
-# File listings chi tiết đã có first_review, last_review và số review, nên không cần gộp reviews.csv ở bước này.
-# Điểm cảm xúc (sentiment) từ reviews sẽ được gộp vào sau Bước 3 (NLP).
-cat("Đang tạo đặc trưng cho mô hình...\n")
+listings <- read_listings()
+assert_unique_id(listings$id, "Listings sạch")
+if (!any(!is.na(listings$last_review))) stop("Không có last_review để xác định ngày chốt.")
+snapshot_date <- max(as.Date(listings$last_review), na.rm = TRUE)
 model_data <- listings %>%
   mutate(
-    # NYC Local Law 18 (09/2023): phần lớn listing chỉ cho thuê từ 30 đêm trở lên
+    # Ranh giới 30 đêm đúng định nghĩa nhóm lưu trú của báo cáo.
     stay_type = if_else(minimum_nights >= 30, "long_stay", "short_stay"),
-
-    # Listing chưa có review: đánh dấu bằng has_reviews = 0 và điền trung vị cho các cột số ngày
     has_reviews = as.integer(number_of_reviews > 0),
-    days_since_last_review = as.numeric(snapshot_date - last_review),
-    days_since_first_review = as.numeric(snapshot_date - first_review),
-    days_since_last_review = replace_na(days_since_last_review, median(days_since_last_review, na.rm = TRUE)),
-    days_since_first_review = replace_na(days_since_first_review, median(days_since_first_review, na.rm = TRUE))
-  ) %>%
-  select(-id, -first_review, -last_review) # Bỏ khóa và các cột ngày tháng sau khi đã chuyển thành số
-
-# 3. Lưu dữ liệu đã làm sạch
-output_path <- "../../data/airbnb_model_ready.csv"
-write_csv(model_data, output_path)
-cat("Dữ liệu sẵn sàng cho mô hình. Số dòng:", nrow(model_data), "- Lưu tại:", output_path, "\n")
+    days_since_last_review = as.numeric(snapshot_date - as.Date(last_review)),
+    days_since_first_review = as.numeric(snapshot_date - as.Date(first_review))
+  )
+# Giữ id để xuất dự đoán và mô tả cụm có thể truy vết; không đưa id vào mô hình.
+readr::write_csv(model_data, data_path("airbnb_model_ready.csv"))
+cat("Ngày chốt dữ liệu (snapshot):", format(snapshot_date), "\n")
+cat("Dữ liệu sẵn sàng cho mô hình. Số dòng:", nrow(model_data), "\n")

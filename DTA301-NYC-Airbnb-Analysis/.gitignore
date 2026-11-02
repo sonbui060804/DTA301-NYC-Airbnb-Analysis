@@ -1,4 +1,12 @@
-# reviews.csv gốc nặng 310 MB (giới hạn GitHub: 100 MB/file). Repo lưu bản nén data/reviews.csv.xz.
+# Reviews gốc nặng hơn giới hạn GitHub; nếu có, dùng bản nén cùng snapshot.
+# Checkout hiện tại chỉ có cleaned_reviews.csv.xz, không có reviews gốc.
 data/reviews.csv
 data/cleaned_reviews.csv
 data/reviews.csv.gz
+
+# Thư viện cài cục bộ và ma trận thưa có thể tái tạo, không đưa vào mã nguồn.
+.r-library/
+report/tables/*.rds
+Rplots.pdf
+**/Rplots.pdf
+

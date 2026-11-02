@@ -1,65 +1,60 @@
-# ==============================================================================
 # BƯỚC 1b: DATA PREPARATION & CLEANING CHO REVIEWS
-# Mục tiêu: Đọc dữ liệu reviews, loại bỏ các bình luận rỗng, 
-# giữ lại các cột cần thiết cho Sentiment Analysis, và CHỈ lấy reviews 
-# của những listing_id đã được làm sạch trong cleaned_listings.csv
-# ==============================================================================
+# Ưu tiên nguồn gốc; bản đã làm sạch cũ chỉ là nguồn thay thế có ghi giới hạn.
+# Tìm hàm chung khi chạy từ notebook, thư mục dự án hoặc đường dẫn Rscript tuyệt đối.
+script_arg <- grep("^--file=", commandArgs(), value = TRUE)
+origins <- c(getwd(), if (length(script_arg)) dirname(sub("^--file=", "", script_arg[1])))
+helper <- NULL
+for (origin in origins) {
+  current <- normalizePath(origin, winslash = "/", mustWork = TRUE)
+  repeat {
+    candidates <- c(file.path(current, "code", "analysis_helpers.R"),
+                    file.path(current, "DTA301-NYC-Airbnb-Analysis", "code", "analysis_helpers.R"))
+    found <- candidates[file.exists(candidates)]
+    if (length(found)) { helper <- found[1]; break }
+    if (dirname(current) == current) break
+    current <- dirname(current)
+  }
+  if (!is.null(helper)) break
+}
+if (is.null(helper)) stop("Không tìm thấy code/analysis_helpers.R.")
+source(helper, encoding = "UTF-8")
 
-options(repos = c(CRAN = "https://cloud.r-project.org"))
+require_packages(c("readr", "cld2", "xml2", "stringi"))
+listings <- read_listings()
+raw_candidates <- data_path(c("reviews.csv.xz", "reviews.csv", "reviews.csv.gz"))
+available <- raw_candidates[file.exists(raw_candidates)]
+legacy_source <- !length(available)
+if (legacy_source) {
+  available <- data_path("cleaned_reviews.csv.xz")
+  if (!file.exists(available)) stop("Thiếu reviews.csv/reviews.csv.xz và cả reviews sạch dự phòng.")
+  warning("Đang dùng reviews sạch cũ: không khôi phục được bình luận dưới bốn từ đã bị loại. ",
+          "Hãy bổ sung reviews gốc cùng snapshot để tái tạo đầy đủ.")
+}
+source_file <- available[1]
+cat("Đang đọc file reviews:", basename(source_file), "\n")
+reviews <- readr::read_csv(source_file,
+  col_types = readr::cols(.default = readr::col_character()),
+  show_col_types = FALSE)
+key <- if ("review_id" %in% names(reviews)) "review_id" else "id"
+readr::write_csv(quality_summary(reviews, key), table_path("reviews_quality_source.csv"))
+cleaned_reviews <- clean_review_rows(reviews, listings$id)
 
-if (!require(dplyr)) install.packages("dplyr")
-if (!require(readr)) install.packages("readr")
-
-library(dplyr)
-library(readr)
-
-cat("Bắt đầu quá trình Tiền Xử Lý file Reviews...\n")
-
-# Đọc file cleaned_listings để lấy danh sách các id hợp lệ
-cat("Đang đọc cleaned_listings.csv...\n")
-cleaned_listings <- read_csv("../../../data/cleaned_listings.csv", col_types = cols(id = col_character()), show_col_types = FALSE)
-
-valid_listing_ids <- cleaned_listings$id
-
-# Đọc file reviews
-cat("Đang đọc reviews.csv (file gốc)...\n")
-reviews <- read_csv("../../../data/reviews.csv", col_types = cols(
-  listing_id = col_character(),
-  id = col_character(),
-  date = col_date(format = ""),
-  reviewer_id = col_character(),
-  reviewer_name = col_character(),
-  comments = col_character()
-), show_col_types = FALSE)
-
-cat("Số lượng dòng ban đầu của reviews:", nrow(reviews), "\n")
-
-# Làm sạch
-cat("Đang lọc và dọn dẹp reviews...\n")
-cleaned_reviews <- reviews %>%
-  # 1. Chỉ giữ lại những review thuộc về các listing_id hợp lệ
-  filter(listing_id %in% valid_listing_ids) %>%
-  # 2. Bỏ qua các review không có nội dung comment
-  filter(!is.na(comments) & comments != "") %>%
-  # 2b. Lọc bỏ các comment không có ngày tháng (date bị khuyết)
-  filter(!is.na(date)) %>%
-  # 2c. Lọc bỏ các comment tự động của hệ thống (chứa "automated posting" hoặc "canceled this reservation")
-  filter(!grepl("automated posting|canceled this reservation", comments, ignore.case = TRUE)) %>%
-  # 2d. Lọc bỏ các bình luận quá ngắn (rác, vô nghĩa) bằng cách đếm số từ
-  # Chú ý: Dùng strsplit để đếm số từ. Các bình luận có ít hơn 4 từ sẽ bị loại
-  filter(lengths(strsplit(comments, "\\s+")) >= 4) %>%
-  # 3. Chỉ giữ các cột cần cho Sentiment Analysis (Bỏ tên reviewer để bảo mật và giảm dung lượng)
-  select(listing_id, review_id = id, date, comments)
-
-cat("Số lượng dòng sau khi làm sạch:", nrow(cleaned_reviews), "\n")
-cat("Đã loại bỏ được:", nrow(reviews) - nrow(cleaned_reviews), "dòng dữ liệu dư thừa/khuyết thiếu.\n")
-
-# Lưu ra file csv để xem cục bộ
-output_csv <- "../../../data/cleaned_reviews.csv"
-write_csv(cleaned_reviews, output_csv)
-
-# Lưu ra file mới dạng nén xz để giảm tối đa dung lượng (Github giới hạn 100MB)
-output_xz <- "../../data/cleaned_reviews.csv.xz"
-write_csv(cleaned_reviews, output_xz)
-
-cat("Tuyệt vời! Dữ liệu reviews gọn nhẹ đã được lưu tại:", output_csv, "và", output_xz, "\n")
+# Từ điển cảm xúc và stop words dùng tiếng Anh, nên lọc ngôn ngữ trước khi phân tích.
+# Kết quả NA của cld2 là không xác định, không tự coi là tiếng Anh.
+cat("Đang nhận dạng ngôn ngữ bằng cld2...\n")
+language <- cld2::detect_language(cleaned_reviews$comments, plain_text = TRUE)
+keep <- !is.na(language) & language == "en"
+english_reviews <- cleaned_reviews[keep, , drop = FALSE]
+if (!nrow(english_reviews)) stop("Không còn review tiếng Anh sau khi làm sạch.")
+# Giữ nguyên cleaned_reviews.csv.xz cũ để không làm mất nguồn dự phòng.
+readr::write_csv(english_reviews, data_path("prepared_reviews.csv.xz"))
+readr::write_csv(data.frame(
+  source_file = basename(source_file),
+  source_status = if (legacy_source) "legacy_precleaned" else "raw_snapshot",
+  input_reviews = nrow(reviews), after_text_rules = nrow(cleaned_reviews),
+  english_reviews = nrow(english_reviews),
+  non_english_or_unknown = sum(!keep),
+  limitation = if (legacy_source) "Nguồn cũ đã loại review dưới bốn từ; không thể khôi phục." else ""
+), table_path("reviews_preparation.csv"))
+readr::write_csv(as.data.frame(table(language, useNA = "ifany")), table_path("review_languages.csv"))
+cat("Số lượng dòng sau khi làm sạch:", nrow(english_reviews), "\n")

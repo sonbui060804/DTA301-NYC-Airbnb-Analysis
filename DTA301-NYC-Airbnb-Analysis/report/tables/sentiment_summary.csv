@@ -1,0 +1,4 @@
+sentiment_label,n,proportion
+Negative,80,0.016
+Neutral,47,0.0094
+Positive,4873,0.9746

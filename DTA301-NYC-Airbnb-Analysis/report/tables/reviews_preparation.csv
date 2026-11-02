@@ -1,0 +1,2 @@
+source_file,source_status,input_reviews,after_text_rules,english_reviews,non_english_or_unknown,limitation
+cleaned_reviews.csv.xz,legacy_precleaned,795597,795597,701867,93730,Nguồn cũ đã loại review dưới bốn từ; không thể khôi phục.

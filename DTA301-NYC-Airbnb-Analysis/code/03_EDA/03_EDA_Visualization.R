@@ -1,69 +1,55 @@
-# ==============================================================================
 # PHASE 3: Khám phá và Trực quan hóa dữ liệu (EDA)
-# ==============================================================================
-options(repos = c(CRAN = "https://cloud.r-project.org"))
-if (!require(ggplot2)) install.packages("ggplot2")
-if (!require(dplyr)) install.packages("dplyr")
-if (!require(readr)) install.packages("readr")
-if (!require(wordcloud)) install.packages("wordcloud")
-if (!require(tm)) install.packages("tm")
+# Ba giả thuyết dùng toàn bộ listings sạch, không lấy mẫu hoặc cắt bớt giá hợp lệ.
+# Tìm hàm chung khi chạy từ notebook, thư mục dự án hoặc đường dẫn Rscript tuyệt đối.
+script_arg <- grep("^--file=", commandArgs(), value = TRUE)
+origins <- c(getwd(), if (length(script_arg)) dirname(sub("^--file=", "", script_arg[1])))
+helper <- NULL
+for (origin in origins) {
+  current <- normalizePath(origin, winslash = "/", mustWork = TRUE)
+  repeat {
+    candidates <- c(file.path(current, "code", "analysis_helpers.R"),
+                    file.path(current, "DTA301-NYC-Airbnb-Analysis", "code", "analysis_helpers.R"))
+    found <- candidates[file.exists(candidates)]
+    if (length(found)) { helper <- found[1]; break }
+    if (dirname(current) == current) break
+    current <- dirname(current)
+  }
+  if (!is.null(helper)) break
+}
+if (is.null(helper)) stop("Không tìm thấy code/analysis_helpers.R.")
+source(helper, encoding = "UTF-8")
 
+require_packages(c("ggplot2", "readr"))
 library(ggplot2)
-library(dplyr)
-library(readr)
-
-# ------------------------------------------------------------------------------
-# 1. Phân bố giá phòng
-# ------------------------------------------------------------------------------
-listings <- read_csv('../../data/cleaned_listings.csv', show_col_types = FALSE)
-
+listings <- read_listings()
+summary <- hypothesis_summary(listings)
+readr::write_csv(summary, table_path("hypothesis_price_summary.csv"))
+print(summary)
 p1 <- ggplot(listings, aes(x = price)) +
   geom_histogram(fill = "skyblue", color = "black", bins = 50) +
-  coord_cartesian(xlim = c(0, 1000)) +
-  theme_minimal() +
+  coord_cartesian(xlim = c(0, 1000)) + theme_minimal() +
   labs(title = "Phân bố giá phòng Airbnb tại NYC (Dưới $1000)",
+       subtitle = "Chỉ giới hạn vùng hiển thị; dữ liệu sạch vẫn giữ giá đến 2.000 USD",
        x = "Giá (USD)", y = "Số lượng phòng")
-
-# Lưu biểu đồ 1 thành ảnh
-dir.create("../../report/images", showWarnings = FALSE, recursive = TRUE)
-ggsave("../../report/images/01_Price_Distribution.png", plot = p1, width = 8, height = 5, dpi = 300)
-cat("Đã lưu biểu đồ 1 tại: report/images/01_Price_Distribution.png\n")
-
-# ------------------------------------------------------------------------------
-# 2. Bản đồ mật độ Airbnb tại New York
-# ------------------------------------------------------------------------------
-p2 <- ggplot(listings, aes(x = longitude, y = latitude, color = neighbourhood_group)) +
-  geom_point(alpha = 0.6, size = 0.5) +
-  theme_minimal() +
+ggsave(image_path("01_Price_Distribution.png"), p1, width = 8, height = 5, dpi = 150)
+p2 <- ggplot(listings, aes(longitude, latitude, color = neighbourhood_group)) +
+  geom_point(alpha = 0.6, size = 0.5) + theme_minimal() +
   guides(color = guide_legend(override.aes = list(size = 3))) +
-  labs(title = "Bản đồ Vị trí các phòng Airbnb tại NYC",
-       x = "Kinh độ", y = "Vĩ độ", color = "Quận")
+  labs(title = "Bản đồ Vị trí các phòng Airbnb tại NYC", x = "Kinh độ", y = "Vĩ độ", color = "Quận")
+ggsave(image_path("02_Map_Density.png"), p2, width = 10, height = 8, dpi = 150)
 
-# Lưu biểu đồ 2 thành ảnh
-ggsave("../../report/images/02_Map_Density.png", plot = p2, width = 10, height = 8, dpi = 300)
-cat("Đã lưu biểu đồ 2 tại: report/images/02_Map_Density.png\n")
-
-# ------------------------------------------------------------------------------
-# 3. Wordcloud - Từ khóa đánh giá
-# ------------------------------------------------------------------------------
-library(wordcloud)
-library(tm)
-
-reviews <- read_csv('../../data/cleaned_reviews.csv.xz', show_col_types = FALSE)
-
-set.seed(42)
-sample_reviews <- reviews %>% 
-  filter(!is.na(comments)) %>% 
-  sample_n(20000)
-
-corpus <- Corpus(VectorSource(sample_reviews$comments))
-corpus <- tm_map(corpus, content_transformer(tolower))
-corpus <- tm_map(corpus, removePunctuation)
-corpus <- tm_map(corpus, removeWords, stopwords("english"))
-
-# Lưu Wordcloud thành ảnh
-png("../../report/images/03_Wordcloud_Reviews.png", width = 800, height = 600, res = 150)
-wordcloud(corpus, max.words = 100, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
-dev.off()
-cat("Đã lưu biểu đồ 3 tại: report/images/03_Wordcloud_Reviews.png\n")
-cat("\nHoàn thành! Bạn hãy vào thư mục report/images/ để xem các hình ảnh nhé.\n")
+# Cùng quy tắc nhóm với bảng; H2 loại Hotel room và Shared room theo tài liệu.
+comparisons <- list(
+  H1 = data.frame(group = ifelse(listings$neighbourhood_group == "Manhattan", "Manhattan", "Outside Manhattan"), price = listings$price),
+  H2 = data.frame(group = listings$room_type, price = listings$price)[listings$room_type %in% c("Entire home/apt", "Private room"), ],
+  H3 = data.frame(group = ifelse(listings$minimum_nights >= 30, ">=30", "<30"), price = listings$price)
+)
+titles <- c(H1 = "Giá niêm yết theo vị trí", H2 = "Giá niêm yết theo loại phòng", H3 = "Giá niêm yết theo số đêm tối thiểu")
+for (h in names(comparisons)) {
+  p <- ggplot(comparisons[[h]], aes(group, price, fill = group)) +
+    geom_boxplot(outlier.alpha = 0.15, show.legend = FALSE) + theme_minimal() +
+    labs(title = titles[[h]], subtitle = "So sánh mô tả; chưa chứng minh quan hệ nhân quả",
+         x = NULL, y = "Giá mỗi đêm (USD)")
+  ggsave(image_path(paste0("Hypothesis_", h, "_Boxplot.png")), p, width = 9, height = 5, dpi = 150)
+}
+cat("Đã xuất bảng trung vị và ba biểu đồ hộp; không suy diễn bác bỏ H0.\n")

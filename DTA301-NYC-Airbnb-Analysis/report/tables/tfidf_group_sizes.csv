@@ -1,0 +1,3 @@
+group,raw_listings,eligible_clean_listings,english_review_listings,english_reviews
+Rating = 5.0,6606,4171,4007,25663
+Rating < 4.5,2868,2079,1998,43283
