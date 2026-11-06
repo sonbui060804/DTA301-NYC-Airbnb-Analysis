@@ -37,3 +37,6 @@ model_data <- listings %>%
 readr::write_csv(model_data, data_path("airbnb_model_ready.csv"))
 cat("Ngày chốt dữ liệu (snapshot):", format(snapshot_date), "\n")
 cat("Dữ liệu sẵn sàng cho mô hình. Số dòng:", nrow(model_data), "\n")
+cat("\n--- BẢNG THỐNG KÊ ĐẶC TRƯNG MỚI (stay_type & has_reviews) ---\n")
+print(model_data %>% group_by(stay_type, has_reviews) %>%
+        summarise(n = n(), median_price = median(price), mean_price = mean(price), .groups = "drop"))

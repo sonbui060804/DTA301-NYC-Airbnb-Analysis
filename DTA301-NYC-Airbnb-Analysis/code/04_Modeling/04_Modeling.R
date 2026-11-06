@@ -51,11 +51,15 @@ k_metrics <- do.call(rbind, lapply(2:max_k, function(k) {
 }))
 best_k <- k_metrics$k[which.max(k_metrics$silhouette)]
 readr::write_csv(k_metrics, table_path("kmeans_k_selection.csv"))
+cat("\n--- BẢNG ĐÁNH GIÁ CHỌN SỐ CỤM K (K = 2..8) (Cho Biểu đồ Silhouette & Elbow) ---\n")
+print(k_metrics)
 for (metric in c("total_withinss", "silhouette")) {
   p <- ggplot(k_metrics, aes(x = k, y = .data[[metric]])) + geom_line() + geom_point() +
     theme_minimal() + scale_x_continuous(breaks = k_metrics$k) +
     labs(title = if (metric == "silhouette") "Chọn K bằng Silhouette" else "Elbow Method", x = "Số cụm K", y = metric)
   ggsave(image_path(paste0("KMeans_", metric, ".png")), p, width = 8, height = 5, dpi = 150)
+  assign(paste0("p_kmeans_", metric), p)
+  print(p)
 }
 set.seed(42)
 kmeans_result <- kmeans(scaled_features, centers = best_k, nstart = 25, iter.max = 100)
@@ -65,7 +69,8 @@ profile <- clustered %>% group_by(cluster) %>% summarise(
   n = n(), median_price = median(price), median_reviews = median(number_of_reviews),
   mean_latitude = mean(latitude), mean_longitude = mean(longitude), .groups = "drop")
 readr::write_csv(profile, table_path("cluster_profiles.csv"))
-readr::write_csv(clustered %>% count(cluster, room_type), table_path("cluster_room_types.csv"))
+cluster_rooms <- clustered %>% count(cluster, room_type)
+readr::write_csv(cluster_rooms, table_path("cluster_room_types.csv"))
 readr::write_csv(data.frame(selected_k = best_k, fitted_n = nrow(clustered), seed = 42),
                  table_path("kmeans_run.csv"))
 p3 <- ggplot(clustered, aes(longitude, latitude, color = cluster)) +
@@ -74,8 +79,12 @@ p3 <- ggplot(clustered, aes(longitude, latitude, color = cluster)) +
        subtitle = paste("K =", best_k, "được chọn bằng Silhouette trên mẫu", nrow(selection_data)),
        x = "Kinh độ", y = "Vĩ độ", color = "Cụm")
 ggsave(image_path("04_KMeans_Clustering.png"), p3, width = 10, height = 8, dpi = 150)
+cat("\n--- BẢNG HỒ SƠ 6 CỤM K-MEANS & LOẠI PHÒNG (Cho Biểu đồ 04_KMeans_Clustering.png) ---\n")
 cat("K được chọn:", best_k, "\n")
 print(profile)
+cat("\n--- BẢNG CẤU TRÚC LOẠI PHÒNG TRONG TỪNG CỤM (cluster_room_types.csv) ---\n")
+print(cluster_rooms)
+print(p3)
 
 # 2. Định giá: dùng stay_type THAY minimum_nights, đúng danh sách đặc trưng tài liệu.
 # Chia trước khi học mã hóa/điền thiếu để thông tin của tập test không ảnh hưởng train.
@@ -101,12 +110,17 @@ score <- function(pred, name) {
 }
 metrics <- rbind(score(predictions, "Random Forest"), score(baseline, "Train median baseline"))
 readr::write_csv(metrics, table_path("regression_metrics.csv"))
-readr::write_csv(data.frame(id = test_data$id, actual_price = test_data$price,
-                           predicted_price = as.numeric(predictions), baseline_price = baseline),
-                 table_path("regression_predictions.csv"))
+pred_df <- data.frame(id = test_data$id, actual_price = test_data$price,
+                      predicted_price = as.numeric(predictions), baseline_price = baseline)
+readr::write_csv(pred_df, table_path("regression_predictions.csv"))
 importance <- randomForest::importance(rf_model)
-readr::write_csv(data.frame(feature = rownames(importance), importance, check.names = FALSE),
-                 table_path("regression_importance.csv"))
-cat("KẾT QUẢ DỰ ĐOÁN GIÁ:\n")
+imp_df <- data.frame(feature = rownames(importance), importance, check.names = FALSE, row.names = NULL)
+imp_df_sorted <- imp_df[order(-imp_df$`%IncMSE`), ]
+readr::write_csv(imp_df, table_path("regression_importance.csv"))
+cat("\nKẾT QUẢ DỰ ĐOÁN GIÁ (regression_metrics.csv):\n")
 print(metrics)
+cat("\n--- TOP 15 BIẾN QUAN TRỌNG NHẤT TRONG RANDOM FOREST (regression_importance.csv) ---\n")
+print(head(imp_df_sorted, 15))
+cat("\n--- 10 DÒNG ĐẦU BẢNG DỰ ĐOÁN GIÁ TRÊN TẬP TEST (regression_predictions.csv) ---\n")
+print(head(pred_df, 10))
 cat("Kết quả holdout mô tả khả năng dự đoán giá niêm yết; chưa chứng minh giá tối ưu hay doanh thu.\n")

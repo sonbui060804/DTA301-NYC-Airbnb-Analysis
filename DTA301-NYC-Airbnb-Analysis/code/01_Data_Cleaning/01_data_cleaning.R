@@ -25,7 +25,8 @@ library(readr)
 library(tidyr)
 cat("Bắt đầu quá trình Tiền Xử Lý Dữ Liệu...\n")
 listings <- read_listings("listings.csv")
-write_csv(quality_summary(listings, "id"), table_path("listings_quality_raw.csv"))
+raw_quality <- quality_summary(listings, "id")
+write_csv(raw_quality, table_path("listings_quality_raw.csv"))
 assert_unique_id(listings$id, "Listings")
 
 # Bỏ dữ liệu cá nhân; giữ id dạng chuỗi để ghép chính xác với reviews.
@@ -49,7 +50,10 @@ if (anyNA(cleaned_listings$availability_365)) {
   cleaned_listings$availability_365 <- replace_na(cleaned_listings$availability_365, replacement)
 }
 write_csv(cleaned_listings, data_path("cleaned_listings.csv"))
-write_csv(quality_summary(cleaned_listings, "id"), table_path("listings_quality_clean.csv"))
-cat("Số lượng dòng ban đầu:", nrow(listings), "\n")
+clean_quality <- quality_summary(cleaned_listings, "id")
+write_csv(clean_quality, table_path("listings_quality_clean.csv"))
+cat("\n--- BẢNG KIỂM TRA CHẤT LƯỢNG 17 CỘT SAU KHI LÀM SẠCH (listings_quality_clean.csv) ---\n")
+print(clean_quality)
+cat("\nSố lượng dòng ban đầu:", nrow(listings), "\n")
 cat("Số lượng dòng sau khi làm sạch:", nrow(cleaned_listings), "\n")
 cat("Đã loại bỏ được:", nrow(listings) - nrow(cleaned_listings), "dòng dữ liệu lỗi/dị biệt.\n")

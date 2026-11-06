@@ -61,35 +61,54 @@ contrast <- merge(terms_high[, c("term", "mean_tfidf")], terms_low[, c("term", "
                   by = "term", all = TRUE, suffixes = c("_high", "_low"))
 contrast[is.na(contrast)] <- 0
 contrast$high_minus_low <- contrast$mean_tfidf_high - contrast$mean_tfidf_low
-readr::write_csv(contrast[order(-abs(contrast$high_minus_low)), ], table_path("tfidf_rating_contrast.csv"))
+contrast_sorted <- contrast[order(-abs(contrast$high_minus_low)), ]
+readr::write_csv(contrast_sorted, table_path("tfidf_rating_contrast.csv"))
 # Số nhóm nêu trong tài liệu được tính trên listings gốc, trước khi lọc giá.
 # Xuất cả ba phạm vi để không nhầm số gốc với số sạch hoặc số có review tiếng Anh.
 raw_ratings <- readr::read_csv(data_path("listings.csv"),
   col_select = "review_scores_rating", show_col_types = FALSE)$review_scores_rating
-readr::write_csv(data.frame(
+group_sizes <- data.frame(
   group = c("Rating = 5.0", "Rating < 4.5"),
   raw_listings = c(sum(raw_ratings == 5, na.rm = TRUE), sum(raw_ratings < 4.5, na.rm = TRUE)),
   eligible_clean_listings = c(sum(listings$review_scores_rating == 5, na.rm = TRUE),
                              sum(listings$review_scores_rating < 4.5, na.rm = TRUE)),
   english_review_listings = c(length(high), length(low)),
   english_reviews = c(sum(documents$review_count[high]), sum(documents$review_count[low]))
-), table_path("tfidf_group_sizes.csv"))
+)
+readr::write_csv(group_sizes, table_path("tfidf_group_sizes.csv"))
+cat("\n--- 1. BẢNG QUY MÔ 2 NHÓM RATING TRONG PHÂN TÍCH TF-IDF (tfidf_group_sizes.csv) ---\n")
+print(group_sizes)
+cat("\n--- 2. TOP 15 TỪ KHÓA TF-IDF TRÊN TOÀN BỘ PHÒNG CÓ REVIEW TIẾNG ANH (tfidf_top_terms.csv) ---\n")
+print(head(terms_all, 15))
+cat("\n--- 3. TOP 15 TỪ KHÓA CHÊNH LỆCH LỚN NHẤT GIỮA 2 NHÓM (tfidf_rating_contrast.csv) ---\n")
+print(head(contrast_sorted, 15))
+cat("\n--- 4. TOP 15 TỪ KHÓA NHÓM RATING = 5.0 & RATING < 4.5 (Cho Biểu đồ TFIDF_Rating_Comparison.png) ---\n")
+print(head(terms_high, 15))
+print(head(terms_low, 15))
 
 plot_terms <- rbind(head(terms_high, 15), head(terms_low, 15))
 plot_terms$key <- paste(plot_terms$group, plot_terms$term, sep = ": ")
-p <- ggplot(plot_terms, aes(x = reorder(key, mean_tfidf), y = mean_tfidf, fill = group)) +
+p_tfidf <- ggplot(plot_terms, aes(x = reorder(key, mean_tfidf), y = mean_tfidf, fill = group)) +
   geom_col(show.legend = FALSE) + coord_flip() + facet_wrap(~group, scales = "free_y") +
   theme_minimal() + labs(title = "Từ khóa TF-IDF theo nhóm điểm đánh giá", x = NULL, y = "TF-IDF trung bình mỗi listing")
-ggsave(image_path("TFIDF_Rating_Comparison.png"), p, width = 13, height = 7, dpi = 150)
+ggsave(image_path("TFIDF_Rating_Comparison.png"), p_tfidf, width = 13, height = 7, dpi = 150)
+print(p_tfidf)
 
 # Wordcloud minh họa tần suất, không thay thế TF-IDF; dùng cùng corpus tiếng Anh.
 frequency <- table(unlist(tokens, use.names = FALSE))
 frequency <- sort(frequency, decreasing = TRUE)
+cat("\n--- 5. TOP 20 TỪ CÓ TẦN SUẤT XUẤT HIỆN CAO NHẤT (Cho Biểu đồ 03_Wordcloud_Reviews.png) ---\n")
+print(as.data.frame(head(frequency, 20)))
 png(image_path("03_Wordcloud_Reviews.png"), width = 1200, height = 800, res = 150)
 set.seed(42)
 wordcloud::wordcloud(names(frequency), as.numeric(frequency), max.words = 100,
                      random.order = FALSE, colors = RColorBrewer::brewer.pal(8, "Dark2"))
 dev.off()
+if (interactive()) {
+  set.seed(42)
+  wordcloud::wordcloud(names(frequency), as.numeric(frequency), max.words = 100,
+                       random.order = FALSE, colors = RColorBrewer::brewer.pal(8, "Dark2"))
+}
 
 # Chấm cảm xúc trên mẫu tối đa 5.000 reviews; không suy rộng thành chất lượng toàn thị trường.
 set.seed(42)
@@ -106,6 +125,7 @@ p <- ggplot(sample_reviews, aes(sentiment_label, fill = sentiment_label)) + geom
        subtitle = paste("Mẫu", nrow(sample_reviews), "reviews tiếng Anh; điểm từ điển có thể sai ngữ cảnh"),
        x = "Cảm xúc", y = "Số lượng bình luận")
 ggsave(image_path("Sentiment_Distribution.png"), p, width = 9, height = 5, dpi = 150)
-cat("Hoàn thành! Thống kê kết quả:\n")
+cat("\n--- 6. BẢNG THỐNG KÊ CẢM XÚC KHÁCH HÀNG (Cho Biểu đồ Sentiment_Distribution.png) ---\n")
 print(sentiment_summary)
+print(p)
 cat("Đã xuất TF-IDF, đối chiếu hai nhóm rating và kết quả cảm xúc bổ sung.\n")

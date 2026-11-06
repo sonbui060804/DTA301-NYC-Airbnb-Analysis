@@ -1,5 +1,7 @@
 column,n,missing,missing_pct,duplicate_ids
-listing_id,795597,0,0,0
-review_id,795597,0,0,0
-date,795597,0,0,0
-comments,795597,0,0,0
+listing_id,990170,0,0,0
+id,990170,0,0,0
+date,990170,0,0,0
+reviewer_id,990170,0,0,0
+reviewer_name,990170,1,1.0099275881919266e-4,0
+comments,990170,53,0.005352616217417211,0

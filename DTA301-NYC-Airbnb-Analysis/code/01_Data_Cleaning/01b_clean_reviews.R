@@ -36,7 +36,10 @@ reviews <- readr::read_csv(source_file,
   col_types = readr::cols(.default = readr::col_character()),
   show_col_types = FALSE)
 key <- if ("review_id" %in% names(reviews)) "review_id" else "id"
-readr::write_csv(quality_summary(reviews, key), table_path("reviews_quality_source.csv"))
+rev_quality <- quality_summary(reviews, key)
+readr::write_csv(rev_quality, table_path("reviews_quality_source.csv"))
+cat("\n--- BẢNG CHẤT LƯỢNG REVIEWS GỐC (reviews_quality_source.csv) ---\n")
+print(rev_quality)
 cleaned_reviews <- clean_review_rows(reviews, listings$id)
 
 # Từ điển cảm xúc và stop words dùng tiếng Anh, nên lọc ngôn ngữ trước khi phân tích.
@@ -48,13 +51,20 @@ english_reviews <- cleaned_reviews[keep, , drop = FALSE]
 if (!nrow(english_reviews)) stop("Không còn review tiếng Anh sau khi làm sạch.")
 # Giữ nguyên cleaned_reviews.csv.xz cũ để không làm mất nguồn dự phòng.
 readr::write_csv(english_reviews, data_path("prepared_reviews.csv.xz"))
-readr::write_csv(data.frame(
+prep_summary <- data.frame(
   source_file = basename(source_file),
   source_status = if (legacy_source) "legacy_precleaned" else "raw_snapshot",
   input_reviews = nrow(reviews), after_text_rules = nrow(cleaned_reviews),
   english_reviews = nrow(english_reviews),
   non_english_or_unknown = sum(!keep),
   limitation = if (legacy_source) "Nguồn cũ đã loại review dưới bốn từ; không thể khôi phục." else ""
-), table_path("reviews_preparation.csv"))
-readr::write_csv(as.data.frame(table(language, useNA = "ifany")), table_path("review_languages.csv"))
+)
+readr::write_csv(prep_summary, table_path("reviews_preparation.csv"))
+lang_table <- as.data.frame(table(language, useNA = "ifany"))
+lang_table <- lang_table[order(-lang_table$Freq), ]
+readr::write_csv(lang_table, table_path("review_languages.csv"))
+cat("\n--- BẢNG THỐNG KÊ LÀM SẠCH REVIEWS (reviews_preparation.csv) ---\n")
+print(prep_summary)
+cat("\n--- TOP 10 NGÔN NGỮ TRONG REVIEWS (review_languages.csv) ---\n")
+print(head(lang_table, 10))
 cat("Số lượng dòng sau khi làm sạch:", nrow(english_reviews), "\n")
